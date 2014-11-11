@@ -43,12 +43,6 @@ public class Packet {
 
     public void setRetry(boolean input){
 
-        //Clear bit
-        buf.put(0,(byte)(buf.get(0) & 0xFFFFFFEF));
-        if (input){
-            //Set bit
-            buf.put(0,(byte)(buf.get(0) | 0x10));
-        }
     }
 
     public void setSeqNum(short seq){
@@ -56,29 +50,19 @@ public class Packet {
     }
 
     public short getSeqNum(){
-        return (short)(buf.getShort(0) & 0xFFF);
+
     }
 
     public void setDestAddr(short addr){
-        //Check destAddr
-        if((addr&0xff) < 0 || (addr&0xff) > 65535){
-            throw new IllegalArgumentException("Invalid Destination Address.");
-        }else{
-            buf.putShort(2, addr);
-        }
+
     }
 
     public short getDestAddr(){
-        return buf.getShort(2);
+
     }
 
     public void setSenderAddr(short addr){
-        //Check srcAddr
-        if((addr&0xff) < 0 || (addr&0xff) > 65535){
-            throw new IllegalArgumentException("Invalid Soruce Addres.");
-        }else{
-            buf.putShort(4, addr); // put srcAddr bytes
-        }
+
     }
 
     public short getSenderAddr(){
