@@ -3,6 +3,7 @@ package wifi;
 import java.util.Random;
 
 import rf.RF;
+import sun.awt.image.ImageWatched;
 
 /**
  * Created by Adam on 11/9/2014.
@@ -13,15 +14,15 @@ public class Sender implements Runnable {
 	private int senderMAC;	// stores MAC address of sender
 	private final int SIZE_O_PACKET = 10; // Max packet size, yes I meant size o' Packet
 	private RF theRF;
-	private Packet packet;
 
-    private LinkLayer link;
+    private LinkLayer theLink;
 
 	// MAC is the MAC address of this sender
-	public Sender(int MAC, RF theRF){
+	public Sender(int MAC, RF theRF, LinkLayer theLink){
 		senderMAC = MAC;
 		random = new Random();
 		this.theRF = theRF;
+        this.theLink = theLink;
 	}
 
 
@@ -31,23 +32,29 @@ public class Sender implements Runnable {
 		int byteSent = 0; // Gets number of bytes in transmission
 
 
-		while (true){
-			// Transmits message
-			byteSent = theRF.transmit(packet.getFrame());
+        while (true) {
 
-			// If packet is not the correct size
-			if (byteSent != SIZE_O_PACKET) {
-				System.err.println("Error: Packet corruption detected due to wrong length");
-			}
 
-			// Thread waits a random interval up to 7000 milliseconds before starting again
-			try {
-				Thread.sleep(random.nextInt(MAX_WAIT_MILLI));
-			}
-			catch (InterruptedException e) {
-				System.err.println("Creator thread woke up early!! This is bad.");
-			}
-		}
+            try {
+                //Sleeps each time through, in order to not monopolize the CPU
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            // If there are Packets to be sent in the LinkLayer's outbound queue
+            //Also makes sure the RF is not in use
+            if (theLink.getOut().isEmpty() == false && theRF.inUse() == false) {
+
+                // Send the first packet out on the RF layer
+                try {
+                    theRF.transmit(theLink.getOut().take().getFrame());
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }
 	}
 }
 

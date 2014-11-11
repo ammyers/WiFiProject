@@ -2,7 +2,6 @@ package wifi;
 import java.io.PrintWriter;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.HashMap;
 
 import rf.RF;
 
@@ -62,8 +61,9 @@ public class LinkLayer implements Dot11Interface {
 		output.println("LinkLayer: Sending "+len+" bytes to "+dest);
 
 		Packet p = new Packet(0, (short) 0, dest, ourMAC, data);
+        //Puts the created packet into the outgoing queue
         try {
-            out.put(p); //Puts the created packet into the outgoing queue
+            out.put(p);
         } catch (InterruptedException e) {
             // Auto-generated catch block
             e.printStackTrace();
@@ -88,7 +88,8 @@ public class LinkLayer implements Dot11Interface {
             t.setSourceAddr((short) p.getSenderAddr());
             t.setDestAddr((short) p.getDestAddr());
             t.setBuf(data);
-            return data.length; //Returns the length of the data recieved
+            //Returns the length of the data received
+            return data.length;
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

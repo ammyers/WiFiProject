@@ -11,7 +11,7 @@ public class Receiver implements Runnable {
     private final int SIZE_O_PACKET = 10; // Max packet size, yes I meant size o' Packet
     private LinkLayer theLink;
 
-    public Receiver(RF theRF){
+    public Receiver(RF theRF, LinkLayer theLink){
         this.theRF = theRF;
         this.theLink = theLink;
     }
@@ -25,13 +25,16 @@ public class Receiver implements Runnable {
         while (true) {
 
             try {
-                Thread.sleep(10); //Sleeps each time through, in order to not monopolize the CPU
+                //Sleeps each time through, in order to not monopolize the CPU
+                Thread.sleep(10);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            Packet p = new Packet(theRF.receive()); // Gets data from the RF layer, turns it into packet form
+            // Gets data from the RF layer, turns it into packet form
+            Packet p = new Packet(theRF.receive());
+            // Puts the new Packet into the LinkLayer's inbound queue
             try {
-                theLink.getIn().put(p); // Puts the new Packet into the LinkLayer's inbound queue
+                theLink.getIn().put(p);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
