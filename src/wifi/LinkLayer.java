@@ -1,5 +1,8 @@
 package wifi;
 import java.io.PrintWriter;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.HashMap;
 
 import rf.RF;
 
@@ -12,10 +15,22 @@ public class LinkLayer implements Dot11Interface {
 	private RF theRF;           // You'll need one of these eventually
 	private short ourMAC;       // Our MAC address
 	private PrintWriter output; // The output stream we'll write to
-	Thread senderThread;
-	Thread receiverThread;
 	Sender sender;
 	Receiver receiver;
+
+    private static final int QUEUE_SIZE = 4;
+
+    private BlockingQueue<Packet> in = new ArrayBlockingQueue(QUEUE_SIZE);
+    private BlockingQueue<Packet> out = new ArrayBlockingQueue(QUEUE_SIZE);
+
+    // These Queues will facilitate communication between the LinkLayer and its
+    // Sender and Receiver helper classes.
+    public synchronized BlockingQueue<Packet> getIn() {
+        return in;
+    }
+    public synchronized BlockingQueue<Packet> getOut() {
+        return out;
+    }
 
 	/**
 	 * Constructor takes a MAC address and the PrintWriter to which our output will
@@ -31,8 +46,11 @@ public class LinkLayer implements Dot11Interface {
 
 		sender = new Sender(ourMAC, theRF);
 		receiver = new Receiver(theRF);
-		senderThread = new Thread(sender);
+		Thread senderThread = new Thread(sender);
+        Thread receiverThread = new Thread(receiver); // Threads them
 
+        receiverThread.start(); // Starts the threads running
+        senderThread.start();
 	}
 
 	/**
@@ -44,9 +62,13 @@ public class LinkLayer implements Dot11Interface {
 		output.println("LinkLayer: Sending "+len+" bytes to "+dest);
 
 		Packet p = new Packet(0, (short) 0, dest, ourMAC, data);
+        try {
+            out.put(p); //Puts the created packet into the outgoing queue
+        } catch (InterruptedException e) {
+            // Auto-generated catch block
+            e.printStackTrace();
+        }
 
-
-		theRF.transmit(data);
 		return len;
 	}
 
@@ -57,8 +79,20 @@ public class LinkLayer implements Dot11Interface {
 	@Override
 	public int recv(Transmission t) {
 		output.println("LinkLayer: Pretending to block on recv()");
-		while(true); // <--- This is a REALLY bad way to wait.  Sleep a little each time through.
-		//return 0;
+        Packet p;
+        try {
+            //Grabs the next packet from the incoming queue
+            p = in.take();
+            //Extracts the necessary parts from the packet and puts them into the supplied transmission object
+            byte[] data = p.getData();
+            t.setSourceAddr((short) p.getSenderAddr());
+            t.setDestAddr((short) p.getDestAddr());
+            t.setBuf(data);
+            return data.length; //Returns the length of the data recieved
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return -1;
 	}
 
 	/**

@@ -15,6 +15,8 @@ public class Sender implements Runnable {
 	private RF theRF;
 	private Packet packet;
 
+    private LinkLayer link;
+
 	// MAC is the MAC address of this sender
 	public Sender(int MAC, RF theRF){
 		senderMAC = MAC;
