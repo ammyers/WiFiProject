@@ -1,135 +1,171 @@
 package wifi;
 
-import java.nio.ByteBuffer;
-
 /**
+ * For now, create a frame with type Data (000), a sequence number of zero, and
+ * with the retry bit set to zero (off). The source and destination addresses
+ * must be filled in correctly, and the checksum field filled with all 1s
+ *
  * Created by Adam on 11/9/2014.
  */
 public class Packet {
-    byte[] data;
-    int crc;
-    ByteBuffer buf;
+	byte[] packet;
+	int crc;
 
-    public Packet(byte[] frame){
-        buf = ByteBuffer.allocate(frame.length);
-        buf = ByteBuffer.wrap(frame);
-    }
+	final byte ZERO = 0;
 
-    public Packet(int frameType, short seqNum, short destAddr, short senderAddr, byte[] data){
+	// packet attributes
+	int frameType;
+	short seqNum;
+	short destAddr;
+	short senderAddr;
+	byte[] data;
 
-        if(data != null){
-            buf = ByteBuffer.allocate(10 + data.length);
-        }
-        else{
-            buf = ByteBuffer.allocate(10);
-        }
+	public Packet(byte[] frame) {
+		packet = frame;
+	}
 
-        setData(data); //set data first to short circuit
-        setFrameType(frameType);
-        setRetry(false);
-        setSeqNum(seqNum);
-        setDestAddr(destAddr);
-        setSenderAddr(senderAddr);
-        setCRC();
-    }
+	public Packet(int frameType, short seqNum, short destAddr,
+			short senderAddr, byte[] data) {
 
-    public void setFrameType(int type){
-        type = 0;
-    }
+		if (data != null) {
+			packet = new byte[10 + data.length];
+		} else {
+			packet = new byte[10];
+		}
 
-    public int getFrameType(){
-        return 0;
-    }
+		setData(data); // set data first to short circuit
+		setControl(frameType, seqNum);
+		setRetry(false);
+		setDestAddr(destAddr);
+		setSenderAddr(senderAddr);
+		setCRC();
+	}
 
-    public void setRetry(boolean input){
+	public void setControl(int frameType, short seqNum) {
+		// Control bytes are positions 0 and 1 in packet
+		packet[0] = ZERO;
+		packet[1] = ZERO;
+		// Eventually we will have to use bit shifting to get the frame type and
+		// retry bit into the correct spots
+	}
 
-    }
+	/**
+	 * 0 for first time, 1 for retry
+	 * @param retry
+	 */
+	public void setRetry(boolean retry) {
 
-    public void setSeqNum(short seq){
-        seq = 0;
-    }
+	}
 
-    public short getSeqNum(){
+	public int getFrameType() {
+		return frameType;
+	}
 
-    }
+	public short getSeqNum() {
 
-    public void setDestAddr(short addr){
+		return seqNum;
+	}
 
-    }
+	public void setDestAddr(short destAddr) {
+		// A mask to isolate each byte
+		byte mask = (byte) 0xFF00;
 
-    public short getDestAddr(){
+		// Begin from 2, so we don't overwrite the control bytes
+		for (int i = 2; i < 4; i++) {
+			packet[i] = (byte) ((destAddr & mask) >> 8);
+			mask >>>= 8;
+		}
+	}
 
-    }
+	public short getDestAddr() {
+		return destAddr;
 
-    public void setSenderAddr(short addr){
+	}
 
-    }
+	public void setSenderAddr(short senderAddr) {
 
-    public short getSenderAddr(){
-        return buf.getShort(4);
-    }
+		// A mask to isolate each byte
+		byte mask = (byte) 0xFF00;
 
-    public void setData(byte[] inData){
-        if(inData != null){
+		// Begin from 4, so we don't overwrite the control bytes
+		for (int i = 4; i < 6; i++) {
+			packet[i] = (byte) ((destAddr & mask) >> 8);
+			mask >>>= 8;
+		}
+	}
 
-            //Check data
-            if(inData.length > 2038){
-                throw new IllegalArgumentException("Invalid data.");
-            }else{
-                for(int i=0;i<inData.length;i++){ //put data bytes
-                    buf.put(i+6,inData[i]);
-                }
-            }
-        }
-    }
+	public short getSenderAddr() {
+		return senderAddr;
+	}
 
-    public byte[] getData(){
-        byte[] temp = new byte[buf.limit() - 10];
-        for(int i=0;i<temp.length;i++){ //put data bytes
-            temp[i]= buf.get(i+6);
-        }
-        return temp;
-    }
+	public void setData(byte[] data) {
+		if (data != null) {
 
-    public void setCRC(){
-        int crc = 1111;
+			// Check data
+			if (data.length > 2038) {
+				throw new IllegalArgumentException("Invalid data.");
+			} else {
 
-    }
+				// Start from 6 so we don't overwrite other packet componenets
+				for (int i = 0; i < data.length; i++) {
+					// put data bytes into packet!
+					packet[i + 6] = data[i];
+				}
+			}
+		}
+	}
 
-    public int getCRC(){
-        return crc;
-    }
+	public byte[] getData() {
+		return data;
+	}
 
+	public void setCRC() {
 
-    public byte[] getFrame(){
-        setCRC();
-        return buf.array();
-    }
+		// Checksum begins at the end of the data
+		for (int i = 6 + data.length; i < packet.length; i++) {
+			packet[i] = (byte) 0xFF;
 
-    public String toString(){
-        String type;
-        switch(getFrameType()){
-            case 0:
-                type = "DATA";
-                break;
-            case 1:
-                type = "ACK";
-                break;
-            case 2:
-                type = "BEACON";
-                break;
-            case 4:
-                type = "CTS";
-                break;
-            case 5:
-                type = "RTS";
-                break;
-            default:
-                type = "UNKNOWN";
-        }
-        String out = "<" + type + " " + getSeqNum() + " " + getSenderAddr() + "-->" +
-                getDestAddr() + " [" + getData().length + " bytes] (" + getCRC() + ")>"  ;
+		}
 
-        return out;
-    }
+		// Eventually we will need to calculate the checksum, but for now we
+		// will fill it completely with 1's
+
+	}
+
+	public int getCRC() {
+		return crc;
+	}
+
+	public byte[] getFrame() {
+		return packet;
+	}
+
+	@Override
+	public String toString() {
+		String type;
+		switch (getFrameType()) {
+		case 0:
+			type = "DATA";
+			break;
+		case 1:
+			type = "ACK";
+			break;
+		case 2:
+			type = "BEACON";
+			break;
+		case 4:
+			type = "CTS";
+			break;
+		case 5:
+			type = "RTS";
+			break;
+		default:
+			type = "UNKNOWN";
+		}
+		String out = "<" + type + " " + getSeqNum() + " " + getSenderAddr()
+				+ "-->" + getDestAddr() + " [" + getData().length + " bytes] ("
+				+ getCRC() + ")>";
+
+		return out;
+	}
 }
