@@ -127,7 +127,7 @@ public class Packet {
 		// Eventually we will need to calculate the checksum, but for now we
 		// will fill it completely with 1's
         input = new byte[4];
-        Arrays.fill(input, (byte) 0);
+        Arrays.fill(input, (byte) 1);
 	}
 
 	public byte[] getCRC() {

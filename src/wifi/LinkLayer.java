@@ -17,7 +17,7 @@ public class LinkLayer implements Dot11Interface {
 	Receiver receiver;
 
     // Random guess at size
-    private static final int QUEUE_SIZE = 5;
+    private static final int QUEUE_SIZE = 10;
 
     private BlockingQueue<Packet> incomingBlock = new ArrayBlockingQueue(QUEUE_SIZE);
     private BlockingQueue<Packet> outgoingBlock = new ArrayBlockingQueue(QUEUE_SIZE);
