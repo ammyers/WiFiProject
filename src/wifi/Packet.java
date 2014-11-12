@@ -1,24 +1,27 @@
 package wifi;
 
+import java.util.Arrays;
+
 /**
  * For now, create a frame with type Data (000), a sequence number of zero, and
  * with the retry bit set to zero (off). The source and destination addresses
  * must be filled in correctly, and the checksum field filled with all 1s
  *
- * Created by Adam on 11/9/2014.
+ *  @author Adam Myers
+ *  @author Kaylene Barber
  */
 public class Packet {
-	byte[] packet;
-	int crc;
 
 	final byte ZERO = 0;
 
+    byte[] packet;
 	// packet attributes
 	int frameType;
 	short seqNum;
 	short destAddr;
 	short senderAddr;
 	byte[] data;
+    byte[] crc;
 
 	public Packet(byte[] frame) {
 		packet = frame;
@@ -49,6 +52,7 @@ public class Packet {
 		// retry bit into the correct spots
 	}
 
+    public short getSeqNum() { return seqNum; }
 	/**
 	 * 0 for first time, 1 for retry
 	 * @param retry
@@ -59,11 +63,6 @@ public class Packet {
 
 	public int getFrameType() {
 		return frameType;
-	}
-
-	public short getSeqNum() {
-
-		return seqNum;
 	}
 
 	public void setDestAddr(short destAddr) {
@@ -106,7 +105,7 @@ public class Packet {
 				throw new IllegalArgumentException("Invalid data.");
 			} else {
 
-				// Start from 6 so we don't overwrite other packet componenets
+				// Start from 6 so we don't overwrite other packet parts
 				for (int i = 0; i < data.length; i++) {
 					// put data bytes into packet!
 					packet[i + 6] = data[i];
@@ -120,19 +119,18 @@ public class Packet {
 	}
 
 	public void setCRC() {
-
+        byte[] input;
 		// Checksum begins at the end of the data
-		for (int i = 6 + data.length; i < packet.length; i++) {
-			packet[i] = (byte) 0xFF;
-
-		}
-
+//		for (int i = 6 + data.length; i < packet.length; i++) {
+//			packet[i] = (byte) 0xFF;
+//		}
 		// Eventually we will need to calculate the checksum, but for now we
 		// will fill it completely with 1's
-
+        input = new byte[4];
+        Arrays.fill(input, (byte) 0);
 	}
 
-	public int getCRC() {
+	public byte[] getCRC() {
 		return crc;
 	}
 
@@ -162,9 +160,9 @@ public class Packet {
 		default:
 			type = "UNKNOWN";
 		}
-		String out = "<" + type + " " + getSeqNum() + " " + getSenderAddr()
-				+ "-->" + getDestAddr() + " [" + getData().length + " bytes] ("
-				+ getCRC() + ")>";
+		String out = "{" + type + " " + getSeqNum() + " " + getSenderAddr()
+				+ ">" + getDestAddr() + " [" + getData().length + " bytes] ("
+				+ getCRC() + ")}";
 
 		return out;
 	}
