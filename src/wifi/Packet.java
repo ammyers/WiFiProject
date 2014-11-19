@@ -1,6 +1,7 @@
 package wifi;
 
-import java.util.Arrays;
+import java.nio.ByteBuffer;
+import java.util.zip.CRC32;
 
 /**
  * For now, create a frame with type Data (000), a sequence number of zero, and
@@ -12,89 +13,102 @@ import java.util.Arrays;
  */
 public class Packet {
 
-	final byte ZERO = 0;
+	//final byte ZERO = 0;
 
-    byte[] packet;
+    byte[] data;
+    ByteBuffer packet;
 	// packet attributes
 	int frameType;
 	short seqNum;
-	short destAddr;
-	short senderAddr;
-	byte[] data;
-    byte[] crc;
+//	short destAddr;
+//	short senderAddr;
+//	byte[] data;
+//    byte[] crc;
 
 	public Packet(byte[] frame) {
-		packet = frame;
+        if(frame == null){
+            throw new IllegalArgumentException("Packet cannot be null.");
+        }else if(frame.length > 2038){
+            throw new IllegalArgumentException("Packet is way too big.");
+        }
+        packet = ByteBuffer.allocate(frame.length);
+        packet = ByteBuffer.wrap(frame);
 	}
 
-	public Packet(int frameType, short seqNum, short destAddr,
-			short senderAddr, byte[] data) {
+    public Packet(int frameType, short seqNum, short destAddr, short senderAddr, byte[] data){
 
 		if (data != null) {
-			packet = new byte[10 + data.length];
+            packet = ByteBuffer.allocate(10 + data.length);
 		} else {
-			packet = new byte[10];
+            packet = ByteBuffer.allocate(10);
 		}
 
-		setData(data); // set data first to short circuit
-		setControl(frameType, seqNum);
-		setRetry(false);
-		setDestAddr(destAddr);
-		setSenderAddr(senderAddr);
-		setCRC();
-	}
+        setData(data);
+        setFrameType(frameType);
+        setRetry(false);
+        setSeqNum(seqNum);
+        setDestAddr(destAddr);
+        setSenderAddr(senderAddr);
+    }
 
-	public void setControl(int frameType, short seqNum) {
-		// Control bytes are positions 0 and 1 in packet
-		packet[0] = ZERO;
-		packet[1] = ZERO;
-		// Eventually we will have to use bit shifting to get the frame type and
-		// retry bit into the correct spots
-	}
+    public void setFrameType(int type){
+        // Set bits
+        packet.put(0, (byte) (packet.get(0) | (type << 5)));
 
-    public short getSeqNum() { return seqNum; }
-	/**
-	 * 0 for first time, 1 for retry
-	 * @param retry
-	 */
-	public void setRetry(boolean retry) {
+    }
+    public int getFrameType() {
+        return ((packet.get(0) & 0xE0) >>> 5);
+    }
 
-	}
+    public void setRetry(boolean retry) {
+        if (retry){
+            //Set bit
+            packet.put(0, (byte) (packet.get(0) | 0x10));
+        }
+    }
 
-	public int getFrameType() {
-		return frameType;
-	}
+    public void setSeqNum(short seqNum) {
+        //Set bits
+        // fills first byte with zeroes
+        packet.put(0, (byte) (packet.get(0) | (seqNum >>> 8)));
+        packet.put(1, (byte) (seqNum & 0xFF));
+    }
+
+    public short getSeqNum() { return (short)(packet.getShort(0) & 0xFFF); }
 
 	public void setDestAddr(short destAddr) {
-		// A mask to isolate each byte
-		byte mask = (byte) 0xFF00;
-
-		// Begin from 2, so we don't overwrite the control bytes
-		for (int i = 2; i < 4; i++) {
-			packet[i] = (byte) ((destAddr & mask) >> 8);
-			mask >>>= 8;
-		}
+//		// A mask to isolate each byte
+//		byte mask = (byte) 0xFF00;
+//
+//		// Begin from 2, so we don't overwrite the control bytes
+//		for (int i = 2; i < 4; i++) {
+//			packet[i] = (byte) ((destAddr & mask) >> 8);
+//			mask >>>= 8;
+//		}
+        // Puts desination Address starting at 3 byte (0, 1, 2 <----- = 3th byte)
+        packet.putShort(2, destAddr);
 	}
 
 	public short getDestAddr() {
-		return destAddr;
-
+        return packet.getShort(2);
 	}
 
 	public void setSenderAddr(short senderAddr) {
-
-		// A mask to isolate each byte
-		byte mask = (byte) 0xFF00;
-
-		// Begin from 4, so we don't overwrite the control bytes
-		for (int i = 4; i < 6; i++) {
-			packet[i] = (byte) ((destAddr & mask) >> 8);
-			mask >>>= 8;
-		}
+//
+//		// A mask to isolate each byte
+//		byte mask = (byte) 0xFF00;
+//
+//		// Begin from 4, so we don't overwrite the control bytes
+//		for (int i = 4; i < 6; i++) {
+//			packet[i] = (byte) ((destAddr & mask) >> 8);
+//			mask >>>= 8;
+//		}
+        // Puts sender Address starting at 5 byte (0, 1, 2, 3, 4 <----- = 5th byte)
+        packet.putShort(4, senderAddr);
 	}
 
 	public short getSenderAddr() {
-		return senderAddr;
+		return packet.getShort(4);
 	}
 
 	public void setData(byte[] data) {
@@ -104,13 +118,17 @@ public class Packet {
 			if (data.length > 2038) {
 				throw new IllegalArgumentException("Invalid data.");
 			} else {
-
-				// Start from 6 so we don't overwrite other packet parts
-				for (int i = 0; i < data.length; i++) {
-					// put data bytes into packet!
-					packet[i + 6] = data[i];
-				}
-			}
+                // Puts data starting at 7 byte (0, 1, 2, 3, 4, 5, 6 <----- = 7th byte)
+                for (int i = 0; i < data.length; i++){
+                        packet.put(i + 6, data[i]);
+                    }
+                }
+//				// Start from 6 so we don't overwrite other packet parts
+//				for (int i = 0; i < data.length; i++) {
+//					// put data bytes into packet!
+//					packet[i + 6] = data[i];
+//				}
+//			}
 		}
 	}
 
@@ -119,23 +137,25 @@ public class Packet {
 	}
 
 	public void setCRC() {
-        byte[] input;
+        //byte[] input;
 		// Checksum begins at the end of the data
 //		for (int i = 6 + data.length; i < packet.length; i++) {
 //			packet[i] = (byte) 0xFF;
 //		}
-		// Eventually we will need to calculate the checksum, but for now we
-		// will fill it completely with 1's
-        input = new byte[4];
-        Arrays.fill(input, (byte) 1);
+        CRC32 crc32 = new CRC32();
+        crc32.update(packet.array(), 0, packet.limit()-4);
+        int crc = (int)crc32.getValue();
+        packet.putInt(packet.limit()-4, crc);
 	}
 
-	public byte[] getCRC() {
-		return crc;
+	public int getCRC() {
+        int crc = packet.getInt(packet.limit() - 4);
+        return crc;
 	}
 
 	public byte[] getFrame() {
-		return packet;
+        setCRC();
+        return packet.array();
 	}
 
 	@Override
@@ -160,10 +180,10 @@ public class Packet {
 		default:
 			type = "UNKNOWN";
 		}
-		String out = "{" + type + " " + getSeqNum() + " " + getSenderAddr()
+		String output = "{" + type + " " + getSeqNum() + " " + getSenderAddr()
 				+ ">" + getDestAddr() + " [" + getData().length + " bytes] ("
 				+ getCRC() + ")}";
 
-		return out;
+		return output;
 	}
 }
