@@ -1,5 +1,7 @@
 package wifi;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ArrayBlockingQueue;
 import rf.RF;
@@ -16,6 +18,10 @@ public class LinkLayer implements Dot11Interface {
 	Sender sender;
 	Receiver receiver;
 
+    protected HashMap<Short, ArrayList<Short>> recievedACKS = new HashMap();
+    protected HashMap<Short,Short> sendHash = new HashMap();
+    protected HashMap<Short,Short> recvHash = new HashMap();
+
     // Random guess at size
     private static final int QUEUE_SIZE = 10;
 
@@ -30,6 +36,7 @@ public class LinkLayer implements Dot11Interface {
     public synchronized BlockingQueue<Packet> getOutgoingBlock() {
         return outgoingBlock;
     }
+
 
 	/**
 	 * Constructor takes a MAC address and the PrintWriter to which our output will
@@ -53,16 +60,44 @@ public class LinkLayer implements Dot11Interface {
         senderThread.start();
 	}
 
+    public short nextSeqNum(short seqNum){
+        short nextSeq;
+        if(sendHash.containsKey(seqNum)){
+            nextSeq = (short) (sendHash.get(seqNum)+1);
+        }
+        else{
+            nextSeq = 0;
+        }
+        this.sendHash.put(seqNum, (short) (nextSeq));
+        return nextSeq;
+    }
+
+
+    public short gotSeqNum(short seqNum){
+        short nextSeq;
+        if(sendHash.containsKey(seqNum)){
+            nextSeq = (short) (sendHash.get(seqNum)+1);
+        }
+        else{
+            nextSeq = 0;
+        }
+        this.recvHash.put(seqNum, (short) (nextSeq));
+        return nextSeq;
+    }
+
 	/**
 	 * Send method takes a destination, a buffer (array) of data, and the number
 	 * of bytes to send.  See docs for full description.
 	 */
 	@Override
 	public int send(short dest, byte[] data, int len) {
-		output.println("LinkLayer: Sending "+len+" bytes to "+dest);
+		output.println("LinkLayer: Sending " + len + " bytes to " + dest);
+
+        short seqNum = nextSeqNum(dest);
 
 		Packet p;
-        p = new Packet(0, (short) 0, dest, ourMAC, data);
+        p = new Packet(0, seqNum, dest, ourMAC, data);
+
         // Puts the created packet into the outgoing queue
         try {
             outgoingBlock.put(p);
@@ -85,13 +120,18 @@ public class LinkLayer implements Dot11Interface {
         try {
             // Grabs the next packet from the incoming queue
             p = incomingBlock.take();
-            // Extracts the necessary pieces and puts them into the transmission object
-            byte[] data = p.getData();
-            t.setSourceAddr(p.getSenderAddr());
-            t.setDestAddr(p.getDestAddr());
-            t.setBuf(data);
-            // Length of the data received
-            return data.length;
+            if(p.getSeqNum() < recvHash.get(p.getSenderAddr())){
+                output.println("Already got this");
+            }
+            else {
+                // Extracts the necessary pieces and puts them into the transmission object
+                byte[] data = p.getData();
+                t.setSourceAddr(p.getSenderAddr());
+                t.setDestAddr(p.getDestAddr());
+                t.setBuf(data);
+                // Length of the data received
+                return data.length;
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
