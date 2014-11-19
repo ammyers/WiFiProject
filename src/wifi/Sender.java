@@ -42,6 +42,31 @@ public class Sender implements Runnable {
                     e.printStackTrace();
                 }
 
+                Packet packet = null;
+                int counter = 0;
+
+                // while counter isn't the limit of retries
+                // and the received ACK is from destination and contains wrong sequence number
+                while((counter < RF.dot11RetryLimit) && theLink.recievedACKS.containsKey(packet.getDestAddr())
+                        && theLink.recievedACKS.get(packet.getDestAddr()).contains(packet.getSeqNum()) == false){
+
+                    // create new packet
+                    Packet retryPacket = new Packet(packet.getFrameType(),packet.getSeqNum(),packet.getDestAddr(), packet.getSenderAddr(), packet.getData());
+                    // but set retry bit to 1 (true)
+                    retryPacket.setRetry(true);
+
+                    // Send the first packet out on the RF layer
+                    theRF.transmit(retryPacket.getFrame());
+
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                    counter++;
+                }
+
             }
         }
 	}
