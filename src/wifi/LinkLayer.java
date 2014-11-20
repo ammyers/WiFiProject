@@ -13,12 +13,12 @@ import rf.RF;
  */
 public class LinkLayer implements Dot11Interface {
 	private RF theRF;           // You'll need one of these eventually
-	private short ourMAC;       // Our MAC address
-	private PrintWriter output; // The output stream we'll write to
+	protected short ourMAC;       // Our MAC address
+	protected PrintWriter output; // The output stream we'll write to
 	Sender sender;
 	Receiver receiver;
 
-    protected HashMap<Short, ArrayList<Short>> recievedACKS = new HashMap();
+    protected HashMap<Short, ArrayList<Short>> receivedACKS = new HashMap();
     protected HashMap<Short,Short> sendHash = new HashMap();
     protected HashMap<Short,Short> recvHash = new HashMap();
 
@@ -60,28 +60,28 @@ public class LinkLayer implements Dot11Interface {
         senderThread.start();
 	}
 
-    public short nextSeqNum(short seqNum){
+    public short nextSeqNum(short seqNum) {
         short nextSeq;
-        if(sendHash.containsKey(seqNum)){
-            nextSeq = (short) (sendHash.get(seqNum)+1);
+        if(sendHash.containsKey(seqNum)) {
+            nextSeq = (short) (sendHash.get(seqNum) + 1);
         }
         else{
             nextSeq = 0;
         }
-        this.sendHash.put(seqNum, (short) (nextSeq));
+        this.sendHash.put(seqNum, nextSeq);
         return nextSeq;
     }
 
 
-    public short gotSeqNum(short seqNum){
+    public short gotSeqNum(short seqNum) {
         short nextSeq;
-        if(sendHash.containsKey(seqNum)){
-            nextSeq = (short) (sendHash.get(seqNum)+1);
+        if(sendHash.containsKey(seqNum)) {
+            nextSeq = (short) (sendHash.get(seqNum) + 1);
         }
         else{
             nextSeq = 0;
         }
-        this.recvHash.put(seqNum, (short) (nextSeq));
+        this.recvHash.put(seqNum, nextSeq);
         return nextSeq;
     }
 
@@ -115,12 +115,14 @@ public class LinkLayer implements Dot11Interface {
 	 */
 	@Override
 	public int recv(Transmission t) {
+        // should add check for t being null
+
 		output.println("LinkLayer: Pretending to block on recv()");
         Packet p;
         try {
             // Grabs the next packet from the incoming queue
             p = incomingBlock.take();
-            if(p.getSeqNum() < recvHash.get(p.getSenderAddr())){
+            if(p.getSeqNum() < recvHash.get(p.getSenderAddr())) {
                 output.println("Already got this");
             }
             else {
