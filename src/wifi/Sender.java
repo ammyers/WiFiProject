@@ -12,10 +12,10 @@ public class Sender implements Runnable {
 	private RF theRF;
     private LinkLayer theLink;
 
-	public Sender(RF theRF, LinkLayer theLink){
+	public Sender(RF theRF, LinkLayer theLink) {
 		this.theRF = theRF;
         this.theLink = theLink;
-}
+    }
 
 
 	@Override
@@ -47,8 +47,8 @@ public class Sender implements Runnable {
 
                 // while counter isn't the limit of retries
                 // and the received ACK is from destination and contains wrong sequence number
-                while((counter < RF.dot11RetryLimit) && theLink.recievedACKS.containsKey(packet.getDestAddr())
-                        && theLink.recievedACKS.get(packet.getDestAddr()).contains(packet.getSeqNum()) == false){
+                while((counter < RF.dot11RetryLimit) && theLink.receivedACKS.containsKey(packet.getDestAddr())
+                        && theLink.receivedACKS.get(packet.getDestAddr()).contains(packet.getSeqNum()) == false) {
 
                     // create new packet
                     Packet retryPacket = new Packet(packet.getFrameType(),packet.getSeqNum(),packet.getDestAddr(), packet.getSenderAddr(), packet.getData());
