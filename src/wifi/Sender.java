@@ -2,6 +2,8 @@ package wifi;
 
 import rf.RF;
 
+import java.util.Random;
+
 
 /**
  *  @author Adam Myers
@@ -9,66 +11,109 @@ import rf.RF;
  */
 public class Sender implements Runnable {
 
-	private RF theRF;
+    private RF theRF;
     private LinkLayer theLink;
 
-	public Sender(RF theRF, LinkLayer theLink) {
-		this.theRF = theRF;
+    public Sender(RF theRF, LinkLayer theLink) {
+        this.theRF = theRF;
         this.theLink = theLink;
     }
 
-
-	@Override
-	public void run(){
-		System.out.println("Sender is alive and well");
+    @Override
+    public void run(){
+        System.out.println("Sender is alive and well");
 
         while (true) {
 
             try {
                 //Sleeps each time so we don't destroy the CPU
                 Thread.sleep(10);
+                // If there are Packets to be sent in the LinkLayer's outgoing queue block
+                // and checks the network for activity
+                if (!theLink.getOutgoingBlock().isEmpty() && !theRF.inUse()) {
+
+                    // Send the first packet out on the RF layer after SIFS
+                    Thread.sleep(RF.aSIFSTime);
+                    if (!theRF.inUse()){
+                        theRF.transmit(theLink.getOutgoingBlock().take().getFrame());
+                    }else {
+                        waitBS();
+                        expBackoff();
+                        theRF.transmit(theLink.getOutgoingBlock().take().getFrame());
+                    }
+                } else {
+                    waitBS();
+                    expBackoff();
+                    theRF.transmit(theLink.getOutgoingBlock().take().getFrame());
+                }
+            }
+            catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void waitBS(){
+        // Not busy wait, initial check
+        while(theRF.inUse()){
+            try{
+                Thread.sleep(theRF.aSlotTime);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+        }
 
-            // If there are Packets to be sent in the LinkLayer's outgoing queue block
-            // and checks the network for activity
-            if (theLink.getOutgoingBlock().isEmpty() == false && theRF.inUse() == false) {
+        // RF is not in use but we wait IFS again
+        try{
+            Thread.sleep(theRF.aSIFSTime);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
-                // Send the first packet out on the RF layer
-                try {
-                    theRF.transmit(theLink.getOutgoingBlock().take().getFrame());
+        // If RF is in use, recurse and uses counter to avoid infinite recurse
+        if (theRF.inUse()){
+            //recurse?
+            waitBS();
+        }else {
+            return;
+        }
+    }
+
+    private void expBackoff(){
+        int timer = theRF.aSlotTime;
+        Random random = new Random();
+
+        // while the timer isn't zero
+        if(timer != 0){
+            // check rf
+            while(theRF.inUse()){
+                try{
+                    Thread.sleep(random.nextInt(10));
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-
-                Packet packet = null;
-                int counter = 0;
-
-                // while counter isn't the limit of retries
-                // and the received ACK is from destination and contains wrong sequence number
-                while((counter < RF.dot11RetryLimit) && theLink.receivedACKS.containsKey(packet.getDestAddr())
-                        && theLink.receivedACKS.get(packet.getDestAddr()).contains(packet.getSeqNum()) == false) {
-
-                    // create new packet
-                    Packet retryPacket = new Packet(packet.getFrameType(),packet.getSeqNum(),packet.getDestAddr(), packet.getSenderAddr(), packet.getData());
-                    // but set retry bit to 1 (true)
-                    retryPacket.setRetry(true);
-
-                    // Send the first packet out on the RF layer
-                    theRF.transmit(retryPacket.getFrame());
-
-                    try {
-                        Thread.sleep(10);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-
-                    counter++;
+            }
+            timer--;
+        }else{
+            // timer is zero, must wait one last time
+            while(theRF.inUse()){
+                try{
+                    Thread.sleep(random.nextInt(10));
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
-
             }
         }
-	}
+    }
+
+    private void ackWait(){
+
+        try{
+            Thread.sleep(theRF.aSlotTime);
+            //
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 }
 
