@@ -13,7 +13,6 @@ public class Sender implements Runnable {
 
     private RF theRF;
     private LinkLayer theLink;
-    private int counter = 0;
     private int window = theRF.aCWmin;
 
     public Sender(RF theRF, LinkLayer theLink) {
@@ -34,44 +33,53 @@ public class Sender implements Runnable {
                 // If there are Packets to be sent in the LinkLayer's outgoing queue block
                 // and checks the network for activity
                 if (!theLink.getOutgoingBlock().isEmpty()) {
-
+                    int counter = 0;
                     Packet packet = new Packet(theLink.getOutgoingBlock().take().getFrame());
+
                     boolean received = false;
                     while (received == false) {
-                        if (!theRF.inUse()) {
-                            // Send the first packet out on the RF layer after SIFS
-                            Thread.sleep(RF.aSIFSTime);
-                            // ideal case
+                        while (counter < theRF.dot11RetryLimit) {
                             if (!theRF.inUse()) {
-                                theRF.transmit(theLink.getOutgoingBlock().take().getFrame());
-                                received = ackWait();
-                                if(received){
-                                    break;
-                                }else{
-                                    continue;
+                                // Send the first packet out on the RF layer after SIFS
+                                Thread.sleep(RF.aSIFSTime);
+                                // ideal case
+                                if (!theRF.inUse()) {
+                                    theRF.transmit(packet.getFrame());
+                                    received = ackWait();
+                                    if (received) {
+                                        break;
+                                    } else {
+
+                                        counter++;
+                                        continue;
+                                    }
+                                    // Was idle, we waited IFS, then wasn't idle anymore
+                                } else {
+                                    waitBS();
+                                    expBackoff();
+                                    theRF.transmit(packet.getFrame());
+                                    received = ackWait();
+                                    if (received) {
+                                        break;
+                                    } else {
+
+                                        counter++;
+                                        continue;
+                                    }
                                 }
-                            // Was idle, we waited IFS, then wasn't idle anymore
+                                // was never idle
                             } else {
                                 waitBS();
                                 expBackoff();
-                                theRF.transmit(theLink.getOutgoingBlock().take().getFrame());
+                                theRF.transmit(packet.getFrame());
                                 received = ackWait();
-                                if(received){
+                                if (received) {
                                     break;
-                                }else{
+                                } else {
+
+                                    counter++;
                                     continue;
                                 }
-                            }
-                            // was never idle
-                        } else {
-                            waitBS();
-                            expBackoff();
-                            theRF.transmit(theLink.getOutgoingBlock().take().getFrame());
-                            received = ackWait();
-                            if(received){
-                                break;
-                            }else{
-                                continue;
                             }
                         }
                     }
@@ -153,21 +161,11 @@ public class Sender implements Runnable {
             if((window * 2) > theRF.aCWmax){
                 window *= 2;
             }
-
-            //theLink.getOutgoingBlock().isEmpty();
-
-//            while ((counter < RF.dot11RetryLimit) && theLink.receivedACKS.containsKey(packet.getDestAddr())
-//                    && theLink.receivedACKS.get(packet.getDestAddr()).contains(packet.getSeqNum()) == false) {
-//
-//                // create new packet
-//                Packet retryPacket = new Packet(packet.getFrameType(), packet.getSeqNum(), packet.getDestAddr(), packet.getSenderAddr(), packet.getData());
-
-
-
-
+            packet.setRetry(true);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
         return false;
     }
 }

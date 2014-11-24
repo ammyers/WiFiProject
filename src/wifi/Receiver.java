@@ -31,7 +31,7 @@ public class Receiver implements Runnable {
             short destAddr = packet.getDestAddr();
 
             // 0xffff = bottom 16 bits are 1's
-            if((destAddr & 0xffff) == theLink.ourMAC) {
+            if(destAddr == theLink.ourMAC) {
 
                 // if the destination address is ours and the packet is a data packet
                 if(packet.getFrameType() == 0) {
