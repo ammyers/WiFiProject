@@ -158,28 +158,3 @@ public class LinkLayer implements Dot11Interface {
 		return 0;
 	}
 }
-
-//Packet packet = null;
-//int counter = 0;
-
-//                // while counter isn't the limit of retries
-//                // and the received ACK is from destination but contains wrong sequence number
-//                while((counter < RF.dot11RetryLimit) && theLink.receivedACKS.containsKey(packet.getDestAddr())
-//                        && theLink.receivedACKS.get(packet.getDestAddr()).contains(packet.getSeqNum()) == false) {
-//
-//                    // create new packet
-//                    Packet retryPacket = new Packet(packet.getFrameType(),packet.getSeqNum(),packet.getDestAddr(), packet.getSenderAddr(), packet.getData());
-//                    // but set retry bit to 1 (true)
-//                    retryPacket.setRetry(true);
-//
-//                    // Send the first packet out on the RF layer
-//                    theRF.transmit(retryPacket.getFrame());
-//
-//                    try {
-//                        Thread.sleep(RF.aSIFSTime);
-//                    } catch (InterruptedException e) {
-//                        e.printStackTrace();
-//                    }
-//
-//                    counter++;
-//                }
