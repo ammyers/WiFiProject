@@ -13,6 +13,8 @@ public class Sender implements Runnable {
 
     private RF theRF;
     private LinkLayer theLink;
+    private int counter = 0;
+    private int window = theRF.aCWmin;
 
     public Sender(RF theRF, LinkLayer theLink) {
         this.theRF = theRF;
@@ -20,7 +22,7 @@ public class Sender implements Runnable {
     }
 
     @Override
-    public void run(){
+    public void run() {
         System.out.println("Sender is alive and well");
 
         while (true) {
@@ -28,35 +30,62 @@ public class Sender implements Runnable {
             try {
                 //Sleeps each time so we don't destroy the CPU
                 Thread.sleep(10);
+
                 // If there are Packets to be sent in the LinkLayer's outgoing queue block
                 // and checks the network for activity
-                if (!theLink.getOutgoingBlock().isEmpty() && !theRF.inUse()) {
+                if (!theLink.getOutgoingBlock().isEmpty()) {
 
-                    // Send the first packet out on the RF layer after SIFS
-                    Thread.sleep(RF.aSIFSTime);
-                    if (!theRF.inUse()){
-                        theRF.transmit(theLink.getOutgoingBlock().take().getFrame());
-                    }else {
-                        waitBS();
-                        expBackoff();
-                        theRF.transmit(theLink.getOutgoingBlock().take().getFrame());
+                    Packet packet = new Packet(theLink.getOutgoingBlock().take().getFrame());
+                    boolean received = false;
+                    while (received == false) {
+                        if (!theRF.inUse()) {
+                            // Send the first packet out on the RF layer after SIFS
+                            Thread.sleep(RF.aSIFSTime);
+                            // ideal case
+                            if (!theRF.inUse()) {
+                                theRF.transmit(theLink.getOutgoingBlock().take().getFrame());
+                                received = ackWait();
+                                if(received){
+                                    break;
+                                }else{
+                                    continue;
+                                }
+                            // Was idle, we waited IFS, then wasn't idle anymore
+                            } else {
+                                waitBS();
+                                expBackoff();
+                                theRF.transmit(theLink.getOutgoingBlock().take().getFrame());
+                                received = ackWait();
+                                if(received){
+                                    break;
+                                }else{
+                                    continue;
+                                }
+                            }
+                            // was never idle
+                        } else {
+                            waitBS();
+                            expBackoff();
+                            theRF.transmit(theLink.getOutgoingBlock().take().getFrame());
+                            received = ackWait();
+                            if(received){
+                                break;
+                            }else{
+                                continue;
+                            }
+                        }
                     }
-                } else {
-                    waitBS();
-                    expBackoff();
-                    theRF.transmit(theLink.getOutgoingBlock().take().getFrame());
                 }
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
     }
 
-    private void waitBS(){
+    private void waitBS() {
         // Not busy wait, initial check
-        while(theRF.inUse()){
-            try{
+        while (theRF.inUse()) {
+            try {
                 Thread.sleep(theRF.aSlotTime);
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -64,40 +93,40 @@ public class Sender implements Runnable {
         }
 
         // RF is not in use but we wait IFS again
-        try{
+        try {
             Thread.sleep(theRF.aSIFSTime);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
         // If RF is in use, recurse and uses counter to avoid infinite recurse
-        if (theRF.inUse()){
+        if (theRF.inUse()) {
             //recurse?
             waitBS();
-        }else {
+        } else {
             return;
         }
     }
 
-    private void expBackoff(){
+    private void expBackoff() {
         int timer = theRF.aSlotTime;
         Random random = new Random();
 
         // while the timer isn't zero
-        if(timer != 0){
+        if (timer != 0) {
             // check rf
-            while(theRF.inUse()){
-                try{
+            while (theRF.inUse()) {
+                try {
                     Thread.sleep(random.nextInt(10));
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
             timer--;
-        }else{
+        } else {
             // timer is zero, must wait one last time
-            while(theRF.inUse()){
-                try{
+            while (theRF.inUse()) {
+                try {
                     Thread.sleep(random.nextInt(10));
                 } catch (InterruptedException e) {
                     e.printStackTrace();
@@ -106,14 +135,40 @@ public class Sender implements Runnable {
         }
     }
 
-    private void ackWait(){
+    private boolean ackWait() {
+        Packet packet;
 
-        try{
-            Thread.sleep(theRF.aSlotTime);
-            //
+        try {
+            packet = theLink.getOutgoingBlock().take();
+
+            for(int i = 0; i < 10; i++){
+                if (!theLink.receivedACKS.containsKey(packet.getDestAddr())){
+                    // need to change sleep time to be more appropriate??
+                    Thread.sleep(10);
+                }else{
+                    return true;
+                }
+            }
+
+            if((window * 2) > theRF.aCWmax){
+                window *= 2;
+            }
+
+            //theLink.getOutgoingBlock().isEmpty();
+
+//            while ((counter < RF.dot11RetryLimit) && theLink.receivedACKS.containsKey(packet.getDestAddr())
+//                    && theLink.receivedACKS.get(packet.getDestAddr()).contains(packet.getSeqNum()) == false) {
+//
+//                // create new packet
+//                Packet retryPacket = new Packet(packet.getFrameType(), packet.getSeqNum(), packet.getDestAddr(), packet.getSenderAddr(), packet.getData());
+
+
+
+
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+        return false;
     }
 }
 
