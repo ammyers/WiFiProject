@@ -12,7 +12,11 @@ import java.util.zip.CRC32;
  *  @author Kaylene Barber
  */
 public class Packet {
+<<<<<<< HEAD
     byte[] data;
+=======
+
+>>>>>>> origin/adamCheck2
     ByteBuffer packet;
 
 	public Packet(byte[] frame) {
@@ -57,6 +61,11 @@ public class Packet {
         if (retry){
             // 0x10 = 0000 0000 0001 0000
             packet.put(0, (byte) (packet.get(0) | 0x10));
+<<<<<<< HEAD
+=======
+        }else{
+            packet.put(0, (byte) (packet.get(0) | 0x10));
+>>>>>>> origin/adamCheck2
         }
     }
 
