@@ -22,7 +22,7 @@ public class Sender implements Runnable {
 
     @Override
     public void run() {
-        System.out.println("Sender is alive and well");
+        //System.out.println("Sender is alive and well");
 
         while (true) {
 

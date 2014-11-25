@@ -117,7 +117,7 @@ public class LinkLayer implements Dot11Interface {
 	public int recv(Transmission t) {
         // should add check for t being null
 
-		output.println("LinkLayer: Pretending to block on recv()");
+		//output.println("LinkLayer: Pretending to block on recv()");
         Packet p;
         try {
             // Grabs the next packet from the incoming queue
@@ -158,28 +158,3 @@ public class LinkLayer implements Dot11Interface {
 		return 0;
 	}
 }
-
-//Packet packet = null;
-//int counter = 0;
-
-//                // while counter isn't the limit of retries
-//                // and the received ACK is from destination but contains wrong sequence number
-//                while((counter < RF.dot11RetryLimit) && theLink.receivedACKS.containsKey(packet.getDestAddr())
-//                        && theLink.receivedACKS.get(packet.getDestAddr()).contains(packet.getSeqNum()) == false) {
-//
-//                    // create new packet
-//                    Packet retryPacket = new Packet(packet.getFrameType(),packet.getSeqNum(),packet.getDestAddr(), packet.getSenderAddr(), packet.getData());
-//                    // but set retry bit to 1 (true)
-//                    retryPacket.setRetry(true);
-//
-//                    // Send the first packet out on the RF layer
-//                    theRF.transmit(retryPacket.getFrame());
-//
-//                    try {
-//                        Thread.sleep(RF.aSIFSTime);
-//                    } catch (InterruptedException e) {
-//                        e.printStackTrace();
-//                    }
-//
-//                    counter++;
-//                }

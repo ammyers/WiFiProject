@@ -54,10 +54,12 @@ public class Packet {
     }
 
     public void setRetry(boolean retry) {
+        // clears bit to be 0
+        packet.put(0,(byte)(packet.get(0) & 0xFFFFFFEF));
+        // if retry is true, need to set to 1
+        // otherwise still false and zero
         if (retry){
             // 0x10 = 0000 0000 0001 0000
-            packet.put(0, (byte) (packet.get(0) | 0x10));
-        }else{
             packet.put(0, (byte) (packet.get(0) | 0x10));
         }
     }
@@ -76,14 +78,6 @@ public class Packet {
     }
 
 	public void setDestAddr(short destAddr) {
-//		// A mask to isolate each byte
-//		byte mask = (byte) 0xFF00;
-//
-//		// Begin from 2, so we don't overwrite the control bytes
-//		for (int i = 2; i < 4; i++) {
-//			packet[i] = (byte) ((destAddr & mask) >> 8);
-//			mask >>>= 8;
-//		}
         // Puts desination Address starting at 3 byte (0, 1, 2 <----- = 3th byte)
         packet.putShort(2, destAddr);
 	}
@@ -93,15 +87,6 @@ public class Packet {
 	}
 
 	public void setSenderAddr(short senderAddr) {
-//
-//		// A mask to isolate each byte
-//		byte mask = (byte) 0xFF00;
-//
-//		// Begin from 4, so we don't overwrite the control bytes
-//		for (int i = 4; i < 6; i++) {
-//			packet[i] = (byte) ((destAddr & mask) >> 8);
-//			mask >>>= 8;
-//		}
         // Puts sender Address starting at 5 byte (0, 1, 2, 3, 4 <----- = 5th byte)
         packet.putShort(4, senderAddr);
 	}
@@ -122,12 +107,6 @@ public class Packet {
                         packet.put(i + 6, data[i]);
                     }
                 }
-//				// Start from 6 so we don't overwrite other packet parts
-//				for (int i = 0; i < data.length; i++) {
-//					// put data bytes into packet!
-//					packet[i + 6] = data[i];
-//				}
-//			}
 		}
 	}
 
@@ -143,11 +122,6 @@ public class Packet {
 	}
 
 	public void setCRC() {
-        //byte[] input;
-		// Checksum begins at the end of the data
-//		for (int i = 6 + data.length; i < packet.length; i++) {
-//			packet[i] = (byte) 0xFF;
-//		}
         CRC32 crc32 = new CRC32();
         // the array backing packet, the offset, and length
         crc32.update(packet.array(), 0, packet.limit()-4);

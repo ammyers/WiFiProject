@@ -15,7 +15,7 @@ public class Receiver implements Runnable {
     }
 
     public void run() {
-        System.out.println("Listener is alive and well");
+        //System.out.println("Listener is alive and well");
 
         while (true) {
             try {
