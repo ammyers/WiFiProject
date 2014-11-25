@@ -13,5 +13,15 @@ Checkpoint 2 - 11/10
 	
 Checkpoint 3 - 11/24
 
-  In progress.
+  	Sender to follow proper MAC protocol including:
+  		SIFS waiting
+  		Checking network activity
+  		Exponential backoff
+  		Waiting for ACK and resending if necessary
+  	Receiver:
+  		Verifying sequence numbers
+  		Sending ACK packets
+  	LinkLayer:
+  		Hash for Received ACKs
+  		Tracking of received Packet sequence numbers
 	
