@@ -19,16 +19,16 @@ public class LinkLayer implements Dot11Interface {
 	Receiver receiver;
 
     protected int currentStatus;
-    public static final int SUCCESS = 1;
-    public static final int UNSPECIFIED_ERROR = 2;
-    public static final int RF_INIT_FAILED = 3;
-    public static final int TX_DELIVERED = 4;
-    public static final int TX_FAILED = 5;
-    public static final int BAD_BUF_SIZE = 6;
-    public static final int BAD_ADDRESS = 7;
-    public static final int BAD_MAC_ADDRESS = 8;
-    public static final int ILLEGAL_ARGUMENT = 9;
-    public static final int INSUFFICIENT_BUFFER_SPACE = 10;
+    public final int SUCCESS = 1;
+    public final int UNSPECIFIED_ERROR = 2;
+    public final int RF_INIT_FAILED = 3;
+    public final int TX_DELIVERED = 4;
+    public final int TX_FAILED = 5;
+    public final int BAD_BUF_SIZE = 6;
+    public final int BAD_ADDRESS = 7;
+    public final int BAD_MAC_ADDRESS = 8;
+    public final int ILLEGAL_ARGUMENT = 9;
+    public final int INSUFFICIENT_BUFFER_SPACE = 10;
 
     protected HashMap<Short, ArrayList<Short>> receivedACKS = new HashMap();
     protected HashMap<Short,Short> sendHash = new HashMap();
