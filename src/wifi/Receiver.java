@@ -1,10 +1,12 @@
 package wifi;
+
 import rf.RF;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 /**
+<<<<<<< HEAD
  *  Thread that handles all receiving duties for the Link Layer and
  *  also creates ACKs as a response to receiving packets
  *
@@ -50,10 +52,10 @@ public class Receiver implements Runnable {
                 e.printStackTrace();
             }
 
-            // Gets data from the RF layer, turns it into packet form
-            Packet packet = new Packet(theRF.receive());
+				// Gets data from the RF layer, turns it into packet form
+				Packet packet = new Packet(theRF.receive());
 
-            short destAddr = packet.getDestAddr();
+				short destAddr = packet.getDestAddr();
 
             // If the incoming packet has a valid CRC
             if (packet.isValidCRC()) {

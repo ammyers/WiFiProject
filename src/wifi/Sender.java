@@ -1,9 +1,8 @@
 package wifi;
 
-import rf.RF;
-
 import java.util.Random;
 
+import rf.RF;
 
 /**
  *  Thread that takes care of most sending functions of the Link Layer and
@@ -163,6 +162,4 @@ public class Sender implements Runnable {
         }
 
         return false;
-    }
 }
-
