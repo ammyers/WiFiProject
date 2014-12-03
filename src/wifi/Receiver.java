@@ -6,7 +6,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 /**
-<<<<<<< HEAD
  *  Thread that handles all receiving duties for the Link Layer and
  *  also creates ACKs as a response to receiving packets
  *

@@ -60,7 +60,6 @@ public class LinkLayer implements Dot11Interface {
 		this.ourMAC = ourMAC;
 		this.output = output;
 		theRF = new RF(null, null);
-		output.println("LinkLayer: Constructor ran.");
 
         // Creating and Starting threads
 		sender = new Sender(theRF, this);

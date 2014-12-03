@@ -144,16 +144,16 @@ public class Sender implements Runnable {
         try {
             packet = theLink.getOutgoingBlock().take();
 
-            for(int i = 0; i < 10; i++){
-                if (!theLink.receivedACKS.containsKey(packet.getDestAddr())){
+            for (int i = 0; i < 10; i++) {
+                if (!theLink.receivedACKS.containsKey(packet.getDestAddr())) {
                     // need to change sleep time to be more appropriate??
                     Thread.sleep(10);
-                }else{
+                } else {
                     return true;
                 }
             }
 
-            if((window * 2) > theRF.aCWmax){
+            if ((window * 2) > theRF.aCWmax) {
                 window *= 2;
             }
             packet.setRetry(true);
@@ -162,4 +162,5 @@ public class Sender implements Runnable {
         }
 
         return false;
+    }
 }
