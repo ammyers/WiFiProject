@@ -7,8 +7,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 import rf.RF;
 
 /**
- * Use this layer as a starting point for your project code.  See {@link Dot11Interface} for more
- * details on these routines.
+ * See {@link Dot11Interface} for more details on these routines.
+ *
  * @author richards
  */
 public class LinkLayer implements Dot11Interface {
@@ -18,12 +18,24 @@ public class LinkLayer implements Dot11Interface {
 	Sender sender;
 	Receiver receiver;
 
+    protected int currentStatus;
+    public static final int SUCCESS = 1;
+    public static final int UNSPECIFIED_ERROR = 2;
+    public static final int RF_INIT_FAILED = 3;
+    public static final int TX_DELIVERED = 4;
+    public static final int TX_FAILED = 5;
+    public static final int BAD_BUF_SIZE = 6;
+    public static final int BAD_ADDRESS = 7;
+    public static final int BAD_MAC_ADDRESS = 8;
+    public static final int ILLEGAL_ARGUMENT = 9;
+    public static final int INSUFFICIENT_BUFFER_SPACE = 10;
+
     protected HashMap<Short, ArrayList<Short>> receivedACKS = new HashMap();
     protected HashMap<Short,Short> sendHash = new HashMap();
     protected HashMap<Short,Short> recvHash = new HashMap();
 
-    // Random guess at size
-    private static final int QUEUE_SIZE = 10;
+    // Limit of packets queued for transmission or receipt
+    private static final int QUEUE_SIZE = 4;
 
     private BlockingQueue<Packet> incomingBlock = new ArrayBlockingQueue(QUEUE_SIZE);
     private BlockingQueue<Packet> outgoingBlock = new ArrayBlockingQueue(QUEUE_SIZE);
@@ -60,6 +72,11 @@ public class LinkLayer implements Dot11Interface {
         senderThread.start();
 	}
 
+    /**
+     * Increments the next sequence number for a given address
+     * @param seqNum Sequence number of packet
+     * @return the next sequence number
+     */
     public short nextSeqNum(short seqNum) {
         short nextSeq;
         if(sendHash.containsKey(seqNum)) {
@@ -72,7 +89,11 @@ public class LinkLayer implements Dot11Interface {
         return nextSeq;
     }
 
-
+    /**
+     * Verifies the given address for received sequences
+     * @param seqNum Sequence number of packet
+     * @return the next expected sequence number
+     */
     public short gotSeqNum(short seqNum) {
         short nextSeq;
         if(sendHash.containsKey(seqNum)) {
@@ -95,18 +116,27 @@ public class LinkLayer implements Dot11Interface {
 
         short seqNum = nextSeqNum(dest);
 
-		Packet p;
-        p = new Packet(0, seqNum, dest, ourMAC, data);
+		Packet packet;
+        packet = new Packet(0, seqNum, dest, ourMAC, data);
 
-        // Puts the created packet into the outgoing queue
-        try {
-            outgoingBlock.put(p);
-        } catch (InterruptedException e) {
-            // Auto-generated catch block
-            e.printStackTrace();
+        if(outgoingBlock.size() < QUEUE_SIZE) {
+            // Puts the created packet into the outgoing queue
+            try {
+                outgoingBlock.put(packet);
+            } catch (InterruptedException e) {
+                currentStatus = UNSPECIFIED_ERROR;
+                e.printStackTrace();
+            }
+
+            // Successful transmission
+            currentStatus = SUCCESS;
+            return len;
         }
-
-		return len;
+        // Otherwise the outgoing queue is full
+        else{
+            currentStatus = INSUFFICIENT_BUFFER_SPACE;
+            return 0;
+        }
 	}
 
 	/**
@@ -118,23 +148,27 @@ public class LinkLayer implements Dot11Interface {
         // should add check for t being null
 
 		//output.println("LinkLayer: Pretending to block on recv()");
-        Packet p;
+        Packet packet;
+        if(t == null){
+            currentStatus = ILLEGAL_ARGUMENT;
+        }
         try {
             // Grabs the next packet from the incoming queue
-            p = incomingBlock.take();
-            if(p.getSeqNum() < recvHash.get(p.getSenderAddr())) {
+            packet = incomingBlock.take();
+            if(packet.getSeqNum() < recvHash.get(packet.getSenderAddr())) {
                 output.println("Already got this");
             }
             else {
                 // Extracts the necessary pieces and puts them into the transmission object
-                byte[] data = p.getData();
-                t.setSourceAddr(p.getSenderAddr());
-                t.setDestAddr(p.getDestAddr());
+                byte[] data = packet.getData();
+                t.setSourceAddr(packet.getSenderAddr());
+                t.setDestAddr(packet.getDestAddr());
                 t.setBuf(data);
                 // Length of the data received
                 return data.length;
             }
         } catch (InterruptedException e) {
+            currentStatus = UNSPECIFIED_ERROR;
             e.printStackTrace();
         }
         return -1;
@@ -145,8 +179,7 @@ public class LinkLayer implements Dot11Interface {
 	 */
 	@Override
 	public int status() {
-		output.println("LinkLayer: Faking a status() return value of 0");
-		return 0;
+		return currentStatus;
 	}
 
 	/**

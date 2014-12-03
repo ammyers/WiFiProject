@@ -4,9 +4,10 @@ import java.nio.ByteBuffer;
 import java.util.zip.CRC32;
 
 /**
- * For now, create a frame with type Data (000), a sequence number of zero, and
- * with the retry bit set to zero (off). The source and destination addresses
- * must be filled in correctly, and the checksum field filled with all 1s
+ *  Packet class that packages all necessary information required for
+ *  transmission in 802.11~ specifications.
+ *
+ *  Includes ability for data, beacon, and ACK packet creation.
  *
  *  @author Adam Myers
  *  @author Kaylene Barber
@@ -39,6 +40,7 @@ public class Packet {
         setSeqNum(seqNum);
         setDestAddr(destAddr);
         setSenderAddr(senderAddr);
+        setCRC();
     }
 
     public void setFrameType(int type){
@@ -136,6 +138,20 @@ public class Packet {
         int crc = packet.getInt(packet.limit() - 4);
         return crc;
 	}
+
+    public boolean isValidCRC(){
+        int temp = getCRC();
+
+        CRC32 crc = new CRC32();
+        crc.update(packet.array(), 0, packet.limit() - 4);
+        int validCRC = (int) crc.getValue();
+
+        if(temp == validCRC){
+            return true;
+        }else{
+            return false;
+        }
+    }
 
 	public byte[] getFrame() {
         setCRC();

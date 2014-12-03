@@ -6,6 +6,9 @@ import java.util.Random;
 
 
 /**
+ *  Thread that takes care of most sending functions of the Link Layer and
+ *  implements the entire MAC logic.
+ *
  *  @author Adam Myers
  *  @author Kaylene Barber
  */
@@ -22,7 +25,6 @@ public class Sender implements Runnable {
 
     @Override
     public void run() {
-        //System.out.println("Sender is alive and well");
 
         while (true) {
 
@@ -51,7 +53,6 @@ public class Sender implements Runnable {
                                     } else {
 
                                         counter++;
-                                        continue;
                                     }
                                     // Was idle, we waited IFS, then wasn't idle anymore
                                 } else {
@@ -64,7 +65,6 @@ public class Sender implements Runnable {
                                     } else {
 
                                         counter++;
-                                        continue;
                                     }
                                 }
                                 // was never idle
@@ -78,7 +78,6 @@ public class Sender implements Runnable {
                                 } else {
 
                                     counter++;
-                                    continue;
                                 }
                             }
                         }
@@ -109,10 +108,7 @@ public class Sender implements Runnable {
 
         // If RF is in use, recurse and uses counter to avoid infinite recurse
         if (theRF.inUse()) {
-            //recurse?
             waitBS();
-        } else {
-            return;
         }
     }
 
