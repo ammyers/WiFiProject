@@ -60,7 +60,8 @@ public class LinkLayer implements Dot11Interface {
      */
     public boolean randomSlots = true;
     public int beaconDelay = -1;
-    public short nextSeq = 0;
+    public short nextSeqSend = 0;
+    public short nextSeqRecv = 0;
 
 	/**
 	 * Constructor takes a MAC address and the PrintWriter to which our output will
@@ -91,11 +92,12 @@ public class LinkLayer implements Dot11Interface {
      * @return the next sequence number
      */
     public short nextSeqNum(short seqNum) {
+    	// if we've already used this seqNum, we will use the next incremented value for the next transmission
         if(sendHash.containsKey(seqNum)) {
-            nextSeq = (short) (sendHash.get(seqNum) + 1);
+            nextSeqSend = (short) (sendHash.get(seqNum) + 1);
         }
-        this.sendHash.put(seqNum, nextSeq);
-        return nextSeq;
+        this.sendHash.put(seqNum, nextSeqSend);
+        return nextSeqSend;
     }
 
     /**
@@ -104,15 +106,12 @@ public class LinkLayer implements Dot11Interface {
      * @return the next expected sequence number
      */
     public short gotSeqNum(short seqNum) {
-        short nextSeq;
-        if(sendHash.containsKey(seqNum)) {
-            nextSeq = (short) (sendHash.get(seqNum) + 1);
+    	// if we've already received this seqNum, we expect the next value to be incremented by 1
+        if(recvHash.containsKey(seqNum)) {
+            nextSeqRecv = (short) (recvHash.get(seqNum) + 1);
         }
-        else{
-            nextSeq = 0;
-        }
-        this.recvHash.put(seqNum, nextSeq);
-        return nextSeq;
+        this.recvHash.put(seqNum, nextSeqRecv);
+        return nextSeqRecv;
     }
 
 	/**
