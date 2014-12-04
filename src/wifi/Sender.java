@@ -15,7 +15,7 @@ public class Sender implements Runnable {
 
     private RF theRF;
     private LinkLayer theLink;
-    private int window = theRF.aCWmin;
+    private int window = RF.aCWmin;
     private Packet packet;
 
     public Sender(RF theRF, LinkLayer theLink) {
@@ -40,7 +40,7 @@ public class Sender implements Runnable {
 
                     boolean receivedACK = false;
                     while (receivedACK == false) {
-                        while (counter < theRF.dot11RetryLimit) {
+                        while (counter < RF.dot11RetryLimit) {
                             if (!theRF.inUse()) {
                                 // Send the first packet out on the RF layer after SIFS
                                 Thread.sleep(RF.aSIFSTime);
@@ -93,7 +93,7 @@ public class Sender implements Runnable {
         // Not busy wait, initial check
         while (theRF.inUse()) {
             try {
-                Thread.sleep(theRF.aSlotTime);
+                Thread.sleep(RF.aSlotTime);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -101,7 +101,7 @@ public class Sender implements Runnable {
 
         // RF is not in use but we wait IFS again
         try {
-            Thread.sleep(theRF.aSIFSTime);
+            Thread.sleep(RF.aSIFSTime);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -113,7 +113,7 @@ public class Sender implements Runnable {
     }
 
     private void expBackoff() {
-        int timer = theRF.aSlotTime;
+        int timer = RF.aSlotTime;
         Random random = new Random();
 
         // while the timer isn't zero
@@ -151,7 +151,7 @@ public class Sender implements Runnable {
                 }
             }
 
-            if ((window * 2) > theRF.aCWmax) {
+            if ((window * 2) > RF.aCWmax) {
                 window *= 2;
             }
             packet.setRetry(true);

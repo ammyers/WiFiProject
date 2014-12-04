@@ -138,7 +138,6 @@ public class LinkLayer implements Dot11Interface {
                 currentStatus = UNSPECIFIED_ERROR;
                 e.printStackTrace();
             }
-
             // Successful transmission
             currentStatus = SUCCESS;
             return len;
@@ -158,7 +157,6 @@ public class LinkLayer implements Dot11Interface {
 	public int recv(Transmission t) {
         // should add check for t being null
 
-		//output.println("LinkLayer: Pretending to block on recv()");
         Packet packet;
         if(t == null){
             currentStatus = ILLEGAL_ARGUMENT;

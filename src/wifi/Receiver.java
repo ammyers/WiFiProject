@@ -33,10 +33,6 @@ public class Receiver implements Runnable {
         if(theRF == null){
             status = theLink.RF_INIT_FAILED;
         }
-        // Link layer unable to start
-        if(theLink == null){
-            status = theLink.ILLEGAL_ARGUMENT;
-        }
     }
 
     public void run() {
@@ -165,7 +161,6 @@ public class Receiver implements Runnable {
                         status = theLink.ILLEGAL_ARGUMENT;
                     }
                 }
-
              // Bad CRC on incoming packet.
             }else{
                 System.out.println("Ignored packet with a BAD CRC: " + packet.toString());
