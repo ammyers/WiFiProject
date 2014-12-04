@@ -18,7 +18,10 @@ public class LinkLayer implements Dot11Interface {
 	Sender sender;
 	Receiver receiver;
 
-    protected int currentStatus;
+    /**
+     * Status codes to help with debugging
+     */
+    public int currentStatus;
     public final int SUCCESS = 1;
     public final int UNSPECIFIED_ERROR = 2;
     public final int RF_INIT_FAILED = 3;
@@ -49,6 +52,14 @@ public class LinkLayer implements Dot11Interface {
         return outgoingBlock;
     }
 
+    public int debug = 0;
+    public final int FULL_DEBUG = -1;
+    /**
+     * random slots needs to adjust window size in sender. if True the retry limit hasn't been hit for resending ACK
+     * Need to make a random and define the slot as random.nextInt(collisionWindow), else slot = collisionWindow
+     */
+    public boolean randomSlots = true;
+    public int beaconDelay = -1;
 
 	/**
 	 * Constructor takes a MAC address and the PrintWriter to which our output will
@@ -66,6 +77,8 @@ public class LinkLayer implements Dot11Interface {
 		receiver = new Receiver(theRF, this);
 		Thread senderThread = new Thread(sender);
         Thread receiverThread = new Thread(receiver);
+
+        output.println("Send command 0 to see a list of supported commands");
 
         receiverThread.start();
         senderThread.start();
@@ -119,6 +132,9 @@ public class LinkLayer implements Dot11Interface {
         packet = new Packet(0, seqNum, dest, ourMAC, data);
 
         if(outgoingBlock.size() < QUEUE_SIZE) {
+            if (debug == FULL_DEBUG) {
+                output.println("Queueing " + packet.getData().length + " bytes for " + dest);
+            }
             // Puts the created packet into the outgoing queue
             try {
                 outgoingBlock.put(packet);
@@ -185,8 +201,54 @@ public class LinkLayer implements Dot11Interface {
 	 * Passes command info to your link layer.  See docs for full description.
 	 */
 	@Override
-	public int command(int cmd, int val) {
-		output.println("LinkLayer: Sending command "+cmd+" with value "+val);
-		return 0;
+	public int command(int command, int value) {
+        switch (command) {
+            case 0:
+                output.println("Options & Settings:");
+                output.println("-----------------------------------------");
+                output.println("Command 0: \t View all options and settings.");
+                output.println("Command 1: \t Set debug value. Debug currently at "
+                        + debug);
+                output.println("\t Use -1 for full debug output, 0 for no output.");
+                output.println("Command 2: \t Set slot for link layer. 0 for random slot time otherwise max slot time.");
+                output.println("Command 3: \t Set desired wait time between start of beacon transmissions (in seconds).");
+                break;
+            case 1:
+                currentStatus = SUCCESS;
+                if (value == FULL_DEBUG) {
+                    debug = FULL_DEBUG;
+                }
+
+                if(value == 0){
+                    debug = 0;
+                }
+                output.println("Setting debug to " + debug);
+                break;
+            case 2:
+                currentStatus = SUCCESS;
+                if (value == 0) {
+                    output.println("Using random slot times");
+                    randomSlots = true;
+                } else {
+                    output.println("Using maximum slot times");
+                    randomSlots = false;
+                }
+                break;
+            case 3:
+                currentStatus = SUCCESS;
+                if (value < 0) {
+                    beaconDelay = -1;
+                    output.println("Disabling beacons");
+                } else {
+                    output.println("Using a beacon delay of " + value + " seconds");
+                    //Convert to milliseconds
+                    beaconDelay = value * 1000;
+                }
+                break;
+            default: //Unknown command
+                currentStatus = ILLEGAL_ARGUMENT;
+                output.println("Command " + command + " not recognized.");
+        }
+        return 0;
 	}
 }

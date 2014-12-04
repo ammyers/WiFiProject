@@ -15,25 +15,24 @@ import java.util.ArrayList;
 public class Receiver implements Runnable {
     private RF theRF;
     private LinkLayer theLink;
-    private int status = theLink.currentStatus;
+    public int status;
     private int QUEUE_SIZE = 4;
     private static final long PROCESSING_DELAY = 450;
     private long ourOffset;
 
     /**
      * Constructor - checks initialization as well
-     * @param theRF
-     * @param theLink
+     * @param theRF our instance of the RF layer
+     * @param theLink our instance of Link Layer
      */
     public Receiver(RF theRF, LinkLayer theLink){
         this.theRF = theRF;
         this.theLink = theLink;
-
+        status = theLink.currentStatus;
         // RF unable to start
         if(theRF == null){
             status = theLink.RF_INIT_FAILED;
         }
-
         // Link layer unable to start
         if(theLink == null){
             status = theLink.ILLEGAL_ARGUMENT;
