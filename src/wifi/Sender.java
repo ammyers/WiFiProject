@@ -16,6 +16,7 @@ public class Sender implements Runnable {
     private RF theRF;
     private LinkLayer theLink;
     private int window = theRF.aCWmin;
+    private Packet packet;
 
     public Sender(RF theRF, LinkLayer theLink) {
         this.theRF = theRF;
@@ -35,10 +36,10 @@ public class Sender implements Runnable {
                 // and checks the network for activity
                 if (!theLink.getOutgoingBlock().isEmpty()) {
                     int counter = 0;
-                    Packet packet = new Packet(theLink.getOutgoingBlock().take().getFrame());
+                    packet = new Packet(theLink.getOutgoingBlock().take().getFrame());
 
-                    boolean received = false;
-                    while (received == false) {
+                    boolean receivedACK = false;
+                    while (receivedACK == false) {
                         while (counter < theRF.dot11RetryLimit) {
                             if (!theRF.inUse()) {
                                 // Send the first packet out on the RF layer after SIFS
@@ -46,8 +47,8 @@ public class Sender implements Runnable {
                                 // ideal case
                                 if (!theRF.inUse()) {
                                     theRF.transmit(packet.getFrame());
-                                    received = ackWait();
-                                    if (received) {
+                                    receivedACK = ackWait();
+                                    if (receivedACK) {
                                         break;
                                     } else {
 
@@ -58,8 +59,8 @@ public class Sender implements Runnable {
                                     waitBS();
                                     expBackoff();
                                     theRF.transmit(packet.getFrame());
-                                    received = ackWait();
-                                    if (received) {
+                                    receivedACK = ackWait();
+                                    if (receivedACK) {
                                         break;
                                     } else {
 
@@ -71,8 +72,8 @@ public class Sender implements Runnable {
                                 waitBS();
                                 expBackoff();
                                 theRF.transmit(packet.getFrame());
-                                received = ackWait();
-                                if (received) {
+                                receivedACK = ackWait();
+                                if (receivedACK) {
                                     break;
                                 } else {
 
@@ -139,11 +140,8 @@ public class Sender implements Runnable {
     }
 
     private boolean ackWait() {
-        Packet packet;
 
         try {
-            packet = theLink.getOutgoingBlock().take();
-
             for (int i = 0; i < 10; i++) {
                 if (!theLink.receivedACKS.containsKey(packet.getDestAddr())) {
                     // need to change sleep time to be more appropriate??

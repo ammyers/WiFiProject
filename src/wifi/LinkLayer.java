@@ -60,6 +60,7 @@ public class LinkLayer implements Dot11Interface {
      */
     public boolean randomSlots = true;
     public int beaconDelay = -1;
+    public short nextSeq = 0;
 
 	/**
 	 * Constructor takes a MAC address and the PrintWriter to which our output will
@@ -90,12 +91,8 @@ public class LinkLayer implements Dot11Interface {
      * @return the next sequence number
      */
     public short nextSeqNum(short seqNum) {
-        short nextSeq;
         if(sendHash.containsKey(seqNum)) {
             nextSeq = (short) (sendHash.get(seqNum) + 1);
-        }
-        else{
-            nextSeq = 0;
         }
         this.sendHash.put(seqNum, nextSeq);
         return nextSeq;
