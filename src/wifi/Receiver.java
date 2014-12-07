@@ -49,13 +49,17 @@ public class Receiver implements Runnable {
 				// Gets data from the RF layer, turns it into packet form
 				Packet packet = new Packet(theRF.receive());
 
+            if(theLink.debug == theLink.FULL_DEBUG && packet.getFrameType() != 1){
+                theLink.output.println("TX starting from " + packet.getSenderAddr() + " at local time " + getTime());
+            }
 				short destAddr = packet.getDestAddr();
 
             // If the incoming packet has a valid CRC
             if (packet.isValidCRC()) {
 
-                System.out.println("\tReceived packet with valid CRC: " + packet.toString());
-
+                if(theLink.debug == theLink.FULL_DEBUG) {
+                    theLink.output.println("\tReceived packet with valid CRC: " + packet.toString());
+                }
                 // 0xffff = bottom 16 bits are 1's
                 // If the packet is for us or is a BROADCAST packet
                 if ((destAddr & 0xffff) == theLink.ourMAC || (destAddr & 0xffff) == 65535) {
@@ -68,7 +72,8 @@ public class Receiver implements Runnable {
 
                         // if the packets sequence number is larger than the expected one
                         if (packet.getSeqNum() > nextSeqNum) {
-                            System.out.println("Packet out of order, expected: " + nextSeqNum + " but got: " + packet.getSeqNum());
+                            // need to print to output stream
+                            theLink.output.println("Packet out of order, expected: " + nextSeqNum + " but got: " + packet.getSeqNum());
                         }
                         try {
                             // Puts the new Packet into the LinkLayer's inbound queue
@@ -88,20 +93,24 @@ public class Receiver implements Runnable {
                         }
                         // transmits our ACK
                         theRF.transmit(ack.getFrame());
-                        System.out.println("Sent ACK with sequence number " + ack.getSeqNum() + " to MAC address "
-                                + ack.getDestAddr());
+
+                        if(theLink.debug == theLink.FULL_DEBUG) {
+                            theLink.output.println("Sent ACK with sequence number " + ack.getSeqNum() + " to MAC address "
+                                    + ack.getDestAddr());
+                        }
                     }
 
                     // Receive an ACK for us
                     else if ((destAddr & 0xffff) == theLink.ourMAC && packet.getFrameType() == 1) {
-                        System.out.println("Got a valid ACK: " + packet.toString());
+
+                        theLink.output.println("Got a valid ACK: " + packet.toString());
 
                         // The link contains the address of the sender of this ACK
                         if (theLink.receivedACKS.containsKey(packet.getSenderAddr())) {
 
                             // And if this ACK sequence number is in the queue, it's a duplicate
                             if (theLink.receivedACKS.get(packet.getSenderAddr()).contains(packet.getSeqNum())) {
-                                System.out.println("Received duplicate ACK for sequence number " + packet.getSeqNum() + " from " + packet.getSenderAddr());
+                                theLink.output.println("Received duplicate ACK for sequence number " + packet.getSeqNum() + " from " + packet.getSenderAddr());
                             } else {
                                 // otherwise add to the hash
                                 theLink.receivedACKS.get(packet.getSenderAddr()).add(packet.getSeqNum());
@@ -119,7 +128,7 @@ public class Receiver implements Runnable {
                     else if (packet.getFrameType() == 2) {
 
                         byte[] beacon = packet.getData();
-                        ByteBuffer buffer = ByteBuffer.allocate(8);
+                        ByteBuffer buffer;
                         buffer = ByteBuffer.wrap(beacon);
                         long syncTime = buffer.getLong();
 
@@ -128,11 +137,15 @@ public class Receiver implements Runnable {
                         // If the sync time is ahead of us, we adjust it. Otherwise ignore this beacon because it's behind
                         if (syncTime > ourTime) {
                             ourOffset = syncTime - (ourTime + PROCESSING_DELAY);
-                            System.out.println("Adjusted our clock by " + ourOffset + " due to beacon: \n \t incoming offset was " + syncTime +
-                                    " vs. our " + ourTime + ". Time is now: " + getTime());
+                            if(theLink.debug == theLink.FULL_DEBUG) {
+                                theLink.output.println("Adjusted our clock by " + ourOffset + " due to beacon: \n \t incoming offset was " + syncTime +
+                                        " vs. our " + ourTime + ". Time is now: " + getTime());
+                            }
                         } else {
-                            System.out.println("Ignored beacon, incoming time was " + syncTime +
-                                    " vs. our " + ourTime + ". Time is now: " + getTime());
+                            if(theLink.debug == theLink.FULL_DEBUG) {
+                                theLink.output.println("Ignored beacon, incoming time was " + syncTime +
+                                        " vs. our " + ourTime + ". Time is now: " + getTime());
+                            }
                         }
                     }
                      // Packet is a BROADCAST packet
@@ -141,8 +154,8 @@ public class Receiver implements Runnable {
 
                         // Wrong sequence number received
                         if (packet.getSeqNum() > nextSeq) {
-
-                            System.out.println("Broadcast packet had wrong sequence number. Expected: "
+                            // need to print to output stream
+                            theLink.output.println("Broadcast packet had wrong sequence number. Expected: "
                                     + nextSeq + ". Received: "
                                     + packet.getSeqNum() + ".");
                         }
@@ -157,13 +170,15 @@ public class Receiver implements Runnable {
                     }
                     else{
                         //Frame type other than DATA, ACK, or BEACON
-                        System.out.println("Unexpected frame type");
+                        theLink.output.println("Unexpected frame type");
                         status = theLink.ILLEGAL_ARGUMENT;
                     }
                 }
              // Bad CRC on incoming packet.
             }else{
-                System.out.println("Ignored packet with a BAD CRC: " + packet.toString());
+                if(theLink.debug == theLink.FULL_DEBUG) {
+                    theLink.output.println("Ignored packet with a BAD CRC: " + packet.toString());
+                }
             }
         }
     }
@@ -172,7 +187,7 @@ public class Receiver implements Runnable {
      * Helper method used in clock synchronization
      * @return current time including our offset
      */
-    protected long getTime(){
+    private long getTime(){
         return theRF.clock() + ourOffset;
     }
 }
