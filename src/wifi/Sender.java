@@ -18,7 +18,6 @@ public class Sender implements Runnable {
     private LinkLayer theLink;
     private int window = RF.aCWmin;
     private Packet packet;
-    private int delay = -1;
     private long lastBeacon = 0;
     private int beaconOffset = 1500;// Guesstimate
     public static final int SIFS = RF.aSIFSTime;
@@ -38,27 +37,26 @@ public class Sender implements Runnable {
     @Override
     public void run() {
 
+        long time;
+
         while (true) {
 
             try {
-                //Sleeps each time so we don't destroy the CPU
+                // Sleeps each time so we don't destroy the CPU
                 Thread.sleep(10);
+                time = getTime();
 
-                long time = getTime();
-
-                // Our time is ahead of the last beacon and processing delay
-                if(lastBeacon + delay <= time && delay > 0){
+                if((time - lastBeacon) >= beaconOffset){
                     lastBeacon = time;
-
                     // Create beacon and send
                     ByteBuffer temp = ByteBuffer.allocate(8);
                     temp.putLong(getTime() + beaconOffset);
                     byte[] timeStamp = temp.array();
                     Packet beacon = new Packet(2, (short) 0, (short)-1, theLink.ourMAC, timeStamp);
-                    // we need to send this according to rules
-                    ////////////
-                    //////////////////
-                    /////////////
+
+                    if(!theRF.inUse()){
+                        theRF.transmit(beacon.getFrame());
+                    }
                 }
 
 
@@ -147,7 +145,7 @@ public class Sender implements Runnable {
         Random random = new Random();
 
         // while the timer isn't zero
-        if (timer != 0) {
+        while (timer != 0) {
             // check rf
             while (theRF.inUse()) {
                 try {
@@ -155,20 +153,18 @@ public class Sender implements Runnable {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                // need to figure out. Says timer is always not zero
-                timer--;
             }
-
-        } else {
-            // timer is zero, must wait one last time
-            while (theRF.inUse()) {
-                try {
-                    Thread.sleep(random.nextInt(10));
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+            timer--;
+        }
+        // timer is zero, must wait one last time
+        while (theRF.inUse()) {
+            try {
+                Thread.sleep(random.nextInt(10));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
+
     }
 
     /**
@@ -178,7 +174,7 @@ public class Sender implements Runnable {
      */
     private boolean ackWait() {
 
-        //Average ACK transmission???? + SIFS + SLOT (802.11 IEEE Spec.)
+        //Average ACK transmission + SIFS + SLOT (802.11 IEEE Spec.)
         try {
             Thread.sleep( (long)(2000 + SIFS + SLOT));
         } catch (InterruptedException e) {
