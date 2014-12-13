@@ -74,6 +74,9 @@ public class Receiver implements Runnable {
                         if (packet.getSeqNum() > nextSeqNum) {
                             // need to print to output stream
                             theLink.output.println("Packet out of order, expected: " + nextSeqNum + " but got: " + packet.getSeqNum());
+                            if (theLink.debug == theLink.FULL_DEBUG) {
+                                status = theLink.BAD_ADDRESS;
+                            }
                         }
                         try {
                             // Puts the new Packet into the LinkLayer's inbound queue
@@ -94,7 +97,7 @@ public class Receiver implements Runnable {
                         // transmits our ACK
                         theRF.transmit(ack.getFrame());
 
-                        if(theLink.debug == theLink.FULL_DEBUG) {
+                        if (theLink.debug == theLink.FULL_DEBUG) {
                             theLink.output.println("Sent ACK with sequence number " + ack.getSeqNum() + " to MAC address "
                                     + ack.getDestAddr());
                         }
@@ -171,7 +174,7 @@ public class Receiver implements Runnable {
                     else{
                         //Frame type other than DATA, ACK, or BEACON
                         theLink.output.println("Unexpected frame type");
-                        status = theLink.ILLEGAL_ARGUMENT;
+                        status = theLink.BAD_MAC_ADDRESS;
                     }
                 }
              // Bad CRC on incoming packet.

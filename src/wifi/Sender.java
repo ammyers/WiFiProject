@@ -19,10 +19,11 @@ public class Sender implements Runnable {
     private int window = RF.aCWmin;
     private Packet packet;
     private long lastBeacon = 0;
-    private int beaconOffset = 1500;// Guesstimate
+    private int beaconOffset = 15000;// Guesstimate
     public static final int SIFS = RF.aSIFSTime;
     public static final int SLOT = RF.aSlotTime;
     public static final int DIFS = RF.aSIFSTime + (2 * RF.aSlotTime);
+    public int status;
 
     /**
      * Constructor
@@ -32,6 +33,7 @@ public class Sender implements Runnable {
     public Sender(RF theRF, LinkLayer theLink) {
         this.theRF = theRF;
         this.theLink = theLink;
+        status = theLink.currentStatus;
     }
 
     @Override
@@ -77,9 +79,12 @@ public class Sender implements Runnable {
                                     theRF.transmit(packet.getFrame());
                                     receivedACK = ackWait();
                                     if (receivedACK) {
+                                        if(theLink.debug == theLink.FULL_DEBUG){
+                                            theLink.output.println("Transmission Successful and Received ACK");
+                                            status = theLink.TX_DELIVERED;
+                                        }
                                         break;
                                     } else {
-
                                         counter++;
                                     }
                                     // Was idle, we waited IFS, then wasn't idle anymore
@@ -89,9 +94,12 @@ public class Sender implements Runnable {
                                     theRF.transmit(packet.getFrame());
                                     receivedACK = ackWait();
                                     if (receivedACK) {
+                                        if(theLink.debug == theLink.FULL_DEBUG){
+                                            theLink.output.println("Transmission Successful and Received ACK");
+                                            status = theLink.TX_DELIVERED;
+                                        }
                                         break;
                                     } else {
-
                                         counter++;
                                     }
                                 }
@@ -102,12 +110,19 @@ public class Sender implements Runnable {
                                 theRF.transmit(packet.getFrame());
                                 receivedACK = ackWait();
                                 if (receivedACK) {
+                                    if(theLink.debug == theLink.FULL_DEBUG){
+                                        theLink.output.println("Transmission Successful and Received ACK");
+                                        status = theLink.TX_DELIVERED;
+                                    }
                                     break;
                                 } else {
-
                                     counter++;
                                 }
                             }
+                        }
+                        if(theLink.debug == theLink.FULL_DEBUG){
+                            theLink.output.println("Transmission Failed.");
+                            status = theLink.TX_FAILED;
                         }
                     }
                 }
@@ -174,13 +189,13 @@ public class Sender implements Runnable {
      */
     private boolean ackWait() {
 
-        //Average ACK transmission + SIFS + SLOT (802.11 IEEE Spec.)
-        try {
-            Thread.sleep( (long)(2000 + SIFS + SLOT));
-        } catch (InterruptedException e) {
-            theLink.currentStatus = theLink.UNSPECIFIED_ERROR;
-            e.printStackTrace();
-        }
+//        //Average ACK transmission + SIFS + SLOT (802.11 IEEE Spec.)
+//        try {
+//            Thread.sleep( (long)(2000 + SIFS + SLOT));
+//        } catch (InterruptedException e) {
+//            theLink.currentStatus = theLink.UNSPECIFIED_ERROR;
+//            e.printStackTrace();
+//        }
         try {
             for (int i = 0; i < 10; i++) {
                 if (!theLink.receivedACKS.containsKey(packet.getDestAddr())) {
